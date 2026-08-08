@@ -22,15 +22,6 @@ export 'src/old_widgets/views/index.dart';
 export 'src/old_widgets/widgets/index.dart';
 export 'src/old_widgets/extensions/index.dart';
 
-export 'src/old_widgets/extensions/t_widgets_extensions.dart'
-    hide
-        TWidgetsDoubleExtension,
-        TWidgetsFileExtension,
-        TWidgetsFileSystemEntityExtension,
-        TWidgetsIntExtension,
-        TWidgetsStringExtension,
-        TWidgetsTextEditingControllerExtension;
-
 typedef CustomDownloadImageCallback =
     Future<void> Function(
       String url,
