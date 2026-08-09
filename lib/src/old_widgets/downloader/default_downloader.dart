@@ -1,104 +1,236 @@
 import 'dart:async';
 import 'dart:io';
 
-Future<void> downloadImageDefaultFun(
+// final tokens = <String, DownloadToken>{};
+
+// Future<void> startDownload(String id, String url, String path) async {
+//   final token = DownloadToken();
+//   tokens[id] = token;
+//   try {
+//     await downloadFileDefaultFun(
+//       url,
+//       path,
+//       cancelToken: token,
+//       onProgress: (progress) {
+//         print('$id: $progress');
+//       },
+//     );
+//   } finally {
+//     tokens.remove(id);
+//   }
+// }
+
+// void cancelDownload(String id) {
+//   tokens[id]?.cancel();
+// }
+
+class DownloadToken {
+  bool _isCancelled = false;
+
+  void Function()? _onCancel;
+
+  bool get isCancelled => _isCancelled;
+
+  void cancel() {
+    if (_isCancelled) return;
+
+    _isCancelled = true;
+    _onCancel?.call();
+  }
+  
+
+  void _attach(void Function() onCancel) {
+    _onCancel = onCancel;
+
+    // attach လုပ်တဲ့အချိန်မှာ cancel လုပ်ပြီးသားဖြစ်နေရင်
+    if (_isCancelled) {
+      _onCancel?.call();
+    }
+  }
+
+  void _detach() {
+    _onCancel = null;
+  }
+}
+
+Future<void> downloadFileDefaultFun(
   String url,
   String savePath, {
-  required HttpClient client,
-  void Function(String error)? onError,
-  required void Function(double progress) onProgress,
-  required void Function(
-    StreamSubscription<List<int>> subscription,
-    HttpClientRequest request,
-  )
-  onDownloadStart,
+  DownloadToken? cancelToken,
+  void Function(double progress)? onProgress,
   void Function()? onDownloaded,
+  void Function(String error)? onError,
 }) async {
-  final temFile = File('$savePath.tmp');
-  final completer = Completer<void>();
+  final client = HttpClient();
+  final tempFile = File('$savePath.tmp');
+
+  HttpClientRequest? request;
+  StreamSubscription<List<int>>? subscription;
+  IOSink? sink;
 
   try {
-    final request = await client.getUrl(Uri.parse(url));
+    if (await tempFile.exists()) {
+      await tempFile.delete();
+    }
+
+    request = await client.getUrl(Uri.parse(url));
+
+    // CancelToken -> request + stream cancel
+    cancelToken?._attach(() {
+      request?.abort();
+
+      final sub = subscription;
+      if (sub != null) {
+        unawaited(sub.cancel());
+      }
+    });
+
+    if (cancelToken?.isCancelled == true) {
+      request.abort();
+      return;
+    }
+
     final response = await request.close();
 
-    if (response.statusCode == HttpStatus.ok) {
-      // စုစုပေါင်း ပုံရဲ့ Size (Header ကနေ ယူတာပါ)
-      final total = response.contentLength;
-      int received = 0;
-
-      final sink = temFile.openWrite();
-      // Response ကို stream အဖြစ် နားထောင်ပြီး Progress တွက်မယ်
-      final sub = response.listen(
-        (List<int> chunk) async {
-          // await Future.delayed(Duration(milliseconds: 900));
-
-          received += chunk.length;
-          sink.add(chunk); // File ထဲ ထည့်မယ်
-
-          if (total != -1) {
-            // final progress = (received / total * 100).toStringAsFixed(0);
-            // print('Download Progress: $progress%');
-            onProgress(received / total);
-          }
-        },
-        onDone: () async {
-          await sink.close();
-          if (temFile.existsSync()) {
-            await temFile.rename(savePath);
-          }
-          // print('Download complete and saved to $savePath');
-          onDownloaded?.call();
-          completer.complete();
-        },
-        onError: (e) {
-          // print('Error during download: $e');
-          sink.close();
-          onError?.call('Error during download: $e');
-          completer.completeError(e);
-        },
-        cancelOnError: true,
-      );
-      onDownloadStart(sub, request);
-    } else {
-      // print('Server Error: ${response.statusCode}');
-      onError?.call('Server Error: ${response.statusCode}');
-      completer.completeError('Server Error');
+    if (cancelToken?.isCancelled == true) {
+      await response.drain<void>();
+      return;
     }
-  } catch (e) {
-    onError?.call('Connection Error: $e');
-    completer.completeError(e);
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final error = 'Server Error: ${response.statusCode}';
+
+      onError?.call(error);
+
+      await response.drain<void>();
+
+      return;
+    }
+
+    final total = response.contentLength;
+    var received = 0;
+
+    sink = tempFile.openWrite();
+
+    final completer = Completer<void>();
+
+    subscription = response.listen(
+      (chunk) {
+        if (cancelToken?.isCancelled == true) {
+          return;
+        }
+
+        received += chunk.length;
+
+        sink!.add(chunk);
+
+        if (total > 0) {
+          final progress = received / total;
+
+          onProgress?.call(progress.clamp(0.0, 1.0));
+        }
+      },
+      onDone: () async {
+        try {
+          // Download cancel ဖြစ်သွားရင် temp file ပဲဖျက်
+          if (cancelToken?.isCancelled == true) {
+            await sink?.close();
+            sink = null;
+
+            if (await tempFile.exists()) {
+              await tempFile.delete();
+            }
+
+            if (!completer.isCompleted) {
+              completer.complete();
+            }
+
+            return;
+          }
+
+          await sink?.flush();
+          await sink?.close();
+          sink = null;
+
+          final saveFile = File(savePath);
+
+          await saveFile.parent.create(recursive: true);
+
+          if (await saveFile.exists()) {
+            await saveFile.delete();
+          }
+
+          await tempFile.rename(savePath);
+
+          onProgress?.call(1.0);
+          onDownloaded?.call();
+
+          if (!completer.isCompleted) {
+            completer.complete();
+          }
+        } catch (e, stackTrace) {
+          if (!completer.isCompleted) {
+            completer.completeError(e, stackTrace);
+          }
+        }
+      },
+      onError: (Object error, StackTrace stackTrace) async {
+        try {
+          await sink?.close();
+        } catch (_) {}
+
+        sink = null;
+
+        if (await tempFile.exists()) {
+          try {
+            await tempFile.delete();
+          } catch (_) {}
+        }
+
+        // Cancel ဖြစ်တာကို error အဖြစ် မပြချင်
+        if (cancelToken?.isCancelled != true) {
+          onError?.call('Download Error: $error');
+        }
+
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
+      },
+      cancelOnError: true,
+    );
+
+    await completer.future;
+  } catch (e, stackTrace) {
+    try {
+      await subscription?.cancel();
+    } catch (_) {}
+
+    try {
+      await sink?.close();
+    } catch (_) {}
+
+    if (await tempFile.exists()) {
+      try {
+        await tempFile.delete();
+      } catch (_) {}
+    }
+
+    // Cancel ကို error မလုပ်
+    if (cancelToken?.isCancelled != true) {
+      onError?.call('Download Error: $e');
+      Error.throwWithStackTrace(e, stackTrace);
+    }
+  } finally {
+    cancelToken?._detach();
+
+    try {
+      await subscription?.cancel();
+    } catch (_) {}
+
+    try {
+      await sink?.close();
+    } catch (_) {}
+
+    client.close(force: true);
   }
-  return completer.future;
-
-  // try {
-  //   // ၁။ Request ပို့ပါ
-  //   final request = await client.getUrl(Uri.parse(url));
-
-  //   // ၂။ Response ကို စောင့်ပါ
-  //   final response = await request.close();
-
-  //   // ၃။ Status Code ကို စစ်ပါ (၂၀၀ ဆိုရင် အိုကေ)
-  //   if (response.statusCode == HttpStatus.ok) {
-  //     // Response stream ကို file ထဲကို တိုက်ရိုက် pipe လုပ်ပါ (Memory အစားသက်သာဆုံးနည်း)
-  //     await response.pipe(file.openWrite());
-
-  //     // print('Download complete: $savePath');
-  //     onDownloaded?.call();
-  //   } else {
-  //     if (file.existsSync()) {
-  //       file.delete();
-  //     }
-  //     onError?.call('Download failed: ${response.statusCode}');
-  //     // print('Download failed: ${response.statusCode}');
-  //   }
-  // } catch (e) {
-  //   if (file.existsSync()) {
-  //     file.delete();
-  //   }
-  //   onError?.call('Error: $e');
-  //   // print('Error: $e');
-  // } finally {
-  //   // ၄။ Client ကို အမြဲတမ်း ပြန်ပိတ်ပေးဖို့ လိုပါတယ်
-  //   client.close();
-  // }
 }

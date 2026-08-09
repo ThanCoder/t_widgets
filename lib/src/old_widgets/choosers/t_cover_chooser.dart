@@ -2,28 +2,47 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:t_widgets/src/old_widgets/downloader/default_downloader.dart';
+import 'package:t_widgets/src/old_widgets/functions/default_chooser_func.dart';
 import 'package:t_widgets/t_widgets.dart';
 
 String? initialDirectory;
 
 class TCoverChooser extends StatefulWidget {
-  String coverPath;
-  VoidCallback? onChanged;
-  TCoverChooser({super.key, required this.coverPath, this.onChanged});
+  final String coverPath;
+  final VoidCallback? onChanged;
+  final void Function()? onDeleted;
+  const TCoverChooser({
+    super.key,
+    required this.coverPath,
+    this.onChanged,
+    this.onDeleted,
+  });
 
   @override
   State<TCoverChooser> createState() => _TCoverChooserState();
 }
 
 class _TCoverChooserState extends State<TCoverChooser> {
-  bool isLoading = false;
-  late String imagePath;
-  final client = HttpClient();
+  late File imageFile;
 
   @override
   void initState() {
-    imagePath = widget.coverPath;
+    imageFile = File(widget.coverPath);
     super.initState();
+    init();
+  }
+
+  @override
+  void dispose() {
+    downloadCancelToken.cancel();
+    super.dispose();
+  }
+
+  bool isLoading = false;
+  final downloadCancelToken = DownloadToken();
+
+  Future<void> init() async {
+    // try {} catch (e) {}
   }
 
   @override
@@ -37,7 +56,7 @@ class _TCoverChooserState extends State<TCoverChooser> {
           height: 150,
           child: isLoading
               ? Center(child: TLoader.random())
-              : TImageFile(path: imagePath, borderRadius: 5),
+              : TImageFile(path: imageFile.path, borderRadius: 5),
         ),
       ),
     );
@@ -63,17 +82,16 @@ class _TCoverChooserState extends State<TCoverChooser> {
           leading: const Icon(Icons.add),
           title: const Text('Add From Url'),
         ),
-        File(widget.coverPath).existsSync()
-            ? ListTile(
-                onTap: () {
-                  Navigator.pop(context);
-                  _delete();
-                },
-                iconColor: Colors.red,
-                leading: const Icon(Icons.delete_forever_rounded),
-                title: const Text('Delete'),
-              )
-            : const SizedBox.shrink(),
+        if (imageFile.existsSync())
+          ListTile(
+            onTap: () {
+              Navigator.pop(context);
+              _delete();
+            },
+            iconColor: Colors.red,
+            leading: const Icon(Icons.delete_forever_rounded),
+            title: const Text('Delete'),
+          ),
       ],
     );
   }
@@ -107,12 +125,19 @@ class _TCoverChooserState extends State<TCoverChooser> {
               );
             } else {
               // default
-              await downloadImageDefaultFun(
+              await downloadFileDefaultFun(
                 url,
-                widget.coverPath,
-                client: client,
+                imageFile.path,
                 onProgress: (double progress) {},
-                onDownloadStart: (subscription, request) {},
+                cancelToken: downloadCancelToken,
+                onDownloaded: () {
+                  if (!mounted) return;
+                  setState(() {});
+                },
+                onError: (error) {
+                  if (!mounted) return;
+                  setState(() {});
+                },
               );
             }
 
@@ -163,7 +188,7 @@ class _TCoverChooserState extends State<TCoverChooser> {
           // clear image cache
           await TAppServices.clearAndRefreshImage();
         }
-        imagePath = path;
+        imageFile = File(path);
       }
       if (!mounted) return;
       setState(() {
@@ -182,24 +207,23 @@ class _TCoverChooserState extends State<TCoverChooser> {
   }
 
   void _delete() async {
+    if (!await imageFile.exists()) return;
     try {
       setState(() {
         isLoading = true;
       });
-      final file = File(widget.coverPath);
-      if (await file.exists()) {
-        await file.delete();
-        await TAppServices.clearAndRefreshImage();
 
-        await Future.delayed(const Duration(seconds: 1));
+      await imageFile.delete();
+      await TAppServices.clearAndRefreshImage();
 
-        if (!mounted) return;
-        setState(() {
-          isLoading = false;
-        });
-        if (widget.onChanged != null) {
-          widget.onChanged!();
-        }
+      await Future.delayed(const Duration(seconds: 1));
+
+      if (!mounted) return;
+      setState(() {
+        isLoading = false;
+      });
+      if (widget.onChanged != null) {
+        widget.onChanged!();
       }
     } catch (e) {
       TWidgets.showDebugLog(e.toString());

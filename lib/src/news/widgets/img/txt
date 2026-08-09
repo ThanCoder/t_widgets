@@ -1,0 +1,760 @@
+import 'dart:async';
+import 'dart:collection';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+/// ============================================================
+/// TImageSource
+/// ============================================================
+
+sealed class TImageSource {
+  const TImageSource();
+
+  const factory TImageSource.file(
+    File file, {
+    String? cacheKey,
+  }) = TImageFileSource;
+
+  const factory TImageSource.network(
+    String url, {
+    Map<String, String>? headers,
+    String? cacheKey,
+  }) = TImageNetworkSource;
+
+  const factory TImageSource.memory(
+    Uint8List bytes, {
+    String? cacheKey,
+  }) = TImageMemorySource;
+
+  const factory TImageSource.asset(
+    String name, {
+    AssetBundle? bundle,
+    String? cacheKey,
+  }) = TImageAssetSource;
+}
+
+
+/// ============================================================
+/// File
+/// ============================================================
+
+final class TImageFileSource extends TImageSource {
+  final File file;
+  final String? cacheKey;
+
+  const TImageFileSource(
+    this.file, {
+    this.cacheKey,
+  });
+
+  String get key => cacheKey ?? 'file:${file.path}';
+}
+
+
+/// ============================================================
+/// Network
+/// ============================================================
+
+final class TImageNetworkSource extends TImageSource {
+  final String url;
+  final Map<String, String>? headers;
+  final String? cacheKey;
+
+  const TImageNetworkSource(
+    this.url, {
+    this.headers,
+    this.cacheKey,
+  });
+
+  String get key => cacheKey ?? 'network:$url';
+}
+
+
+/// ============================================================
+/// Memory
+/// ============================================================
+
+final class TImageMemorySource extends TImageSource {
+  final Uint8List bytes;
+  final String? cacheKey;
+
+  const TImageMemorySource(
+    this.bytes, {
+    this.cacheKey,
+  });
+
+  String get key =>
+      cacheKey ?? 'memory:${identityHashCode(bytes)}';
+}
+
+
+/// ============================================================
+/// Asset
+/// ============================================================
+
+final class TImageAssetSource extends TImageSource {
+  final String name;
+  final AssetBundle? bundle;
+  final String? cacheKey;
+
+  const TImageAssetSource(
+    this.name, {
+    this.bundle,
+    this.cacheKey,
+  });
+
+  String get key => cacheKey ?? 'asset:$name';
+}
+
+
+/// ============================================================
+/// Cache Entry
+/// ============================================================
+
+final class _TImageCacheEntry {
+  final Uint8List bytes;
+  final DateTime createdAt;
+
+  _TImageCacheEntry(this.bytes) : createdAt = DateTime.now();
+
+  int get size => bytes.length;
+}
+
+
+/// ============================================================
+/// TImageCache
+/// ============================================================
+
+class TImageCache {
+  TImageCache({
+    this.maxEntries = 100,
+    this.maxBytes = 50 * 1024 * 1024,
+  });
+
+  final int maxEntries;
+  final int maxBytes;
+
+  final LinkedHashMap<String, _TImageCacheEntry> _cache =
+      LinkedHashMap();
+
+  int _totalBytes = 0;
+
+  int get length => _cache.length;
+
+  int get totalBytes => _totalBytes;
+
+  bool contains(String key) {
+    return _cache.containsKey(key);
+  }
+
+  Uint8List? get(String key) {
+    final entry = _cache.remove(key);
+
+    if (entry == null) {
+      return null;
+    }
+
+    // Move to end = most recently used.
+    _cache[key] = entry;
+
+    return entry.bytes;
+  }
+
+  void put(
+    String key,
+    Uint8List bytes,
+  ) {
+    final old = _cache.remove(key);
+
+    if (old != null) {
+      _totalBytes -= old.size;
+    }
+
+    _cache[key] = _TImageCacheEntry(bytes);
+    _totalBytes += bytes.length;
+
+    _trim();
+  }
+
+  void remove(String key) {
+    final old = _cache.remove(key);
+
+    if (old != null) {
+      _totalBytes -= old.size;
+    }
+  }
+
+  void clear() {
+    _cache.clear();
+    _totalBytes = 0;
+  }
+
+  void _trim() {
+    while (
+        _cache.length > maxEntries ||
+        _totalBytes > maxBytes) {
+      if (_cache.isEmpty) {
+        break;
+      }
+
+      final firstKey = _cache.keys.first;
+      final entry = _cache.remove(firstKey);
+
+      if (entry != null) {
+        _totalBytes -= entry.size;
+      }
+    }
+  }
+}
+
+
+/// ============================================================
+/// Global custom cache
+/// ============================================================
+
+class TImages {
+  TImages._();
+
+  static final TImageCache cache = TImageCache();
+
+  static final Map<String, Set<TImageController>> _controllers = {};
+
+  static void register(
+    TImageController controller,
+  ) {
+    final key = controller.cacheKey;
+
+    if (key == null) {
+      return;
+    }
+
+    (_controllers[key] ??= {}).add(controller);
+  }
+
+  static void unregister(
+    TImageController controller,
+  ) {
+    final key = controller.cacheKey;
+
+    if (key == null) {
+      return;
+    }
+
+    final set = _controllers[key];
+
+    if (set == null) {
+      return;
+    }
+
+    set.remove(controller);
+
+    if (set.isEmpty) {
+      _controllers.remove(key);
+    }
+  }
+
+  /// Invalidate only one image.
+  static Future<void> invalidate(
+    String key, {
+    bool notifyWidgets = true,
+  }) async {
+    cache.remove(key);
+
+    final controllers = _controllers[key];
+
+    if (controllers == null) {
+      return;
+    }
+
+    for (final controller in List.of(controllers)) {
+      await controller.invalidate(
+        notifyWidgets: notifyWidgets,
+      );
+    }
+  }
+
+  /// Remove cache + rebuild every TImage
+  /// using this key.
+  static Future<void> remove(String key) async {
+    await invalidate(key);
+  }
+
+  static void clear() {
+    cache.clear();
+  }
+
+  static int get cacheLength => cache.length;
+
+  static int get cacheBytes => cache.totalBytes;
+}
+
+
+/// ============================================================
+/// TImageController
+/// ============================================================
+
+class TImageController extends ChangeNotifier {
+  TImageController({
+    TImageSource? source,
+  }) : _source = source {
+    _register();
+  }
+
+  TImageSource? _source;
+
+  bool _loading = false;
+  Object? _error;
+
+  Uint8List? _bytes;
+
+  bool _disposed = false;
+
+  TImageSource? get source => _source;
+
+  Uint8List? get bytes => _bytes;
+
+  bool get loading => _loading;
+
+  Object? get error => _error;
+
+  String? get cacheKey {
+    final source = _source;
+
+    if (source is TImageFileSource) {
+      return source.key;
+    }
+
+    if (source is TImageNetworkSource) {
+      return source.key;
+    }
+
+    if (source is TImageMemorySource) {
+      return source.key;
+    }
+
+    if (source is TImageAssetSource) {
+      return source.key;
+    }
+
+    return null;
+  }
+
+  void setSource(TImageSource source) {
+    if (_disposed) return;
+
+    TImages.unregister(this);
+
+    _source = source;
+    _bytes = null;
+    _error = null;
+
+    _register();
+
+    notifyListeners();
+  }
+
+  void _register() {
+    TImages.register(this);
+  }
+
+  Future<Uint8List> load() async {
+    if (_disposed) {
+      throw StateError('TImageController has been disposed.');
+    }
+
+    final source = _source;
+
+    if (source == null) {
+      throw StateError('TImageSource is null.');
+    }
+
+    final key = cacheKey;
+
+    if (key != null) {
+      final cached = TImages.cache.get(key);
+
+      if (cached != null) {
+        _bytes = cached;
+        _error = null;
+        _loading = false;
+        notifyListeners();
+
+        return cached;
+      }
+    }
+
+    _loading = true;
+    _error = null;
+
+    notifyListeners();
+
+    try {
+      final bytes = await _loadSource(source);
+
+      if (_disposed) {
+        return bytes;
+      }
+
+      _bytes = bytes;
+
+      if (key != null) {
+        TImages.cache.put(key, bytes);
+      }
+
+      _loading = false;
+      _error = null;
+
+      notifyListeners();
+
+      return bytes;
+    } catch (e) {
+      if (!_disposed) {
+        _loading = false;
+        _error = e;
+
+        notifyListeners();
+      }
+
+      rethrow;
+    }
+  }
+
+  Future<Uint8List> _loadSource(
+    TImageSource source,
+  ) async {
+    switch (source) {
+      case TImageFileSource():
+        return source.file.readAsBytes();
+
+      case TImageNetworkSource():
+        return _loadNetwork(source);
+
+      case TImageMemorySource():
+        return source.bytes;
+
+      case TImageAssetSource():
+        final bundle =
+            source.bundle ?? rootBundle;
+
+        final data = await bundle.load(source.name);
+
+        return data.buffer.asUint8List(
+          data.offsetInBytes,
+          data.lengthInBytes,
+        );
+    }
+  }
+
+  Future<Uint8List> _loadNetwork(
+    TImageNetworkSource source,
+  ) async {
+    final client = HttpClient();
+
+    try {
+      final request = await client.getUrl(
+        Uri.parse(source.url),
+      );
+
+      source.headers?.forEach(
+        (key, value) {
+          request.headers.set(key, value);
+        },
+      );
+
+      final response = await request.close();
+
+      if (response.statusCode < 200 ||
+          response.statusCode >= 300) {
+        throw HttpException(
+          'Image request failed: '
+          '${response.statusCode}',
+          uri: Uri.parse(source.url),
+        );
+      }
+
+      return consolidateHttpClientResponseBytes(
+        response,
+      );
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  /// Remove only this image from custom cache.
+  Future<void> invalidate({
+    bool notifyWidgets = true,
+  }) async {
+    final key = cacheKey;
+
+    if (key != null) {
+      TImages.cache.remove(key);
+    }
+
+    _bytes = null;
+    _error = null;
+
+    if (notifyWidgets && !_disposed) {
+      notifyListeners();
+    }
+  }
+
+  /// Remove cache and reload.
+  Future<void> reload() async {
+    await invalidate();
+    await load();
+  }
+
+  /// Re-read source.
+  Future<void> refresh() async {
+    await reload();
+  }
+
+  /// Completely detach image from controller.
+  void remove() {
+    invalidate();
+  }
+
+  @override
+  void dispose() {
+    if (_disposed) {
+      return;
+    }
+
+    _disposed = true;
+
+    TImages.unregister(this);
+
+    _source = null;
+    _bytes = null;
+    _error = null;
+
+    super.dispose();
+  }
+}
+
+
+/// ============================================================
+/// TImage
+/// ============================================================
+
+class TImage extends StatefulWidget {
+  const TImage({
+    super.key,
+    required this.source,
+    this.controller,
+
+    this.width,
+    this.height,
+    this.fit,
+    this.alignment = Alignment.center,
+    this.repeat = ImageRepeat.noRepeat,
+    this.filterQuality = FilterQuality.medium,
+    this.isAntiAlias = false,
+    this.color,
+    this.colorBlendMode,
+    this.opacity,
+    this.semanticLabel,
+    this.excludeFromSemantics = false,
+    this.matchTextDirection = false,
+    this.gaplessPlayback = false,
+
+    this.cacheWidth,
+    this.cacheHeight,
+
+    this.loadingBuilder,
+    this.errorBuilder,
+    this.frameBuilder,
+  });
+
+  final TImageSource source;
+
+  final TImageController? controller;
+
+  final double? width;
+  final double? height;
+
+  final BoxFit? fit;
+
+  final AlignmentGeometry alignment;
+
+  final ImageRepeat repeat;
+
+  final FilterQuality filterQuality;
+
+  final bool isAntiAlias;
+
+  final Color? color;
+
+  final BlendMode? colorBlendMode;
+
+  final double? opacity;
+
+  final String? semanticLabel;
+
+  final bool excludeFromSemantics;
+
+  final bool matchTextDirection;
+
+  final bool gaplessPlayback;
+
+  final int? cacheWidth;
+  final int? cacheHeight;
+
+  final ImageLoadingBuilder? loadingBuilder;
+
+  final ImageErrorWidgetBuilder? errorBuilder;
+
+  final ImageFrameBuilder? frameBuilder;
+
+  @override
+  State<TImage> createState() => _TImageState();
+}
+
+
+class _TImageState extends State<TImage> {
+  late TImageController _controller;
+
+  bool _ownController = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.controller != null) {
+      _controller = widget.controller!;
+    } else {
+      _controller = TImageController(
+        source: widget.source,
+      );
+
+      _ownController = true;
+    }
+
+    if (widget.controller != null) {
+      _controller.setSource(widget.source);
+    }
+
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(
+    covariant TImage oldWidget,
+  ) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.controller != widget.controller) {
+      if (_ownController) {
+        _controller.dispose();
+      }
+
+      if (widget.controller != null) {
+        _controller = widget.controller!;
+        _ownController = false;
+      } else {
+        _controller = TImageController(
+          source: widget.source,
+        );
+
+        _ownController = true;
+      }
+
+      _load();
+
+      return;
+    }
+
+    if (widget.source != oldWidget.source) {
+      _controller.setSource(widget.source);
+      _load();
+    }
+  }
+
+  Future<void> _load() async {
+    try {
+      await _controller.load();
+    } catch (_) {
+      // Error is exposed through controller.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: _controller,
+      builder: (context, _) {
+        if (_controller.loading &&
+            _controller.bytes == null) {
+          if (widget.loadingBuilder != null) {
+            return widget.loadingBuilder!(
+              context,
+              const SizedBox.shrink(),
+              null,
+            );
+          }
+
+          return const SizedBox.shrink();
+        }
+
+        final error = _controller.error;
+
+        if (error != null) {
+          if (widget.errorBuilder != null) {
+            return widget.errorBuilder!(
+              context,
+              error,
+              StackTrace.current,
+            );
+          }
+
+          return const SizedBox.shrink();
+        }
+
+        final bytes = _controller.bytes;
+
+        if (bytes == null) {
+          return const SizedBox.shrink();
+        }
+
+        return Image.memory(
+          bytes,
+          width: widget.width,
+          height: widget.height,
+          fit: widget.fit,
+          alignment: widget.alignment,
+          repeat: widget.repeat,
+          filterQuality: widget.filterQuality,
+          isAntiAlias: widget.isAntiAlias,
+          color: widget.color,
+          colorBlendMode: widget.colorBlendMode,
+          opacity: widget.opacity != null
+              ? AlwaysStoppedAnimation(widget.opacity!)
+              : null,
+          semanticLabel: widget.semanticLabel,
+          excludeFromSemantics:
+              widget.excludeFromSemantics,
+          matchTextDirection:
+              widget.matchTextDirection,
+          gaplessPlayback: widget.gaplessPlayback,
+          cacheWidth: widget.cacheWidth,
+          cacheHeight: widget.cacheHeight,
+          frameBuilder: widget.frameBuilder,
+          errorBuilder: widget.errorBuilder,
+        );
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    if (_ownController) {
+      _controller.dispose();
+    }
+
+    super.dispose();
+  }
+}

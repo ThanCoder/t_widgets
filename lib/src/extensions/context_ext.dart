@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 extension ContextExt on BuildContext {
   /// app brightness
   Brightness get brightness => Theme.brightnessOf(this);
+  bool get isDarkMode => brightness == .dark;
+
+  bool get isLightMode => brightness == .light;
 
   /// The current brightness mode of the host platform.
   Brightness get platformBrightness => MediaQuery.of(this).platformBrightness;

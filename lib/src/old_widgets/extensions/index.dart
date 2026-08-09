@@ -1,1 +1,1 @@
-export '../../ttext_editing_controller_extension.dart';
+export '../../extensions/ttext_editing_controller_extension.dart';

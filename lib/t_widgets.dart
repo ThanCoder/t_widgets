@@ -4,23 +4,9 @@ import 'dart:io';
 
 import 'package:flutter/widgets.dart';
 
-export 'src/news/partials/material_theme_provider.dart';
-export 'src/news/partials/sort_provider.dart';
-
-export 'src/old_widgets/choosers/index.dart';
-export 'src/old_widgets/dialogs/index.dart';
-export 'src/old_widgets/downloader/index.dart';
-export 'src/old_widgets/functions/index.dart';
-export 'src/old_widgets/menu/index.dart';
-export 'src/old_widgets/pages/index.dart';
-export 'src/old_widgets/progress_manager/index.dart';
-export 'src/old_widgets/services/index.dart';
-export 'src/old_widgets/t_sort/index.dart';
-export 'src/old_widgets/theme/index.dart';
-export 'src/old_widgets/types/index.dart';
-export 'src/old_widgets/views/index.dart';
-export 'src/old_widgets/widgets/index.dart';
-export 'src/old_widgets/extensions/index.dart';
+export 'src/old_widgets/index.dart';
+export 'src/news/index.dart';
+export 'src/extensions/index.dart';
 
 typedef CustomDownloadImageCallback =
     Future<void> Function(
@@ -44,7 +30,6 @@ class TWidgets {
   static bool isDebugPrint = true;
   CustomDownloadImageCallback? onCustomDownloadImage;
   bool Function()? isDarkTheme;
-  late Duration Function() getThemeServicesInitDelay;
   OpenImageFileChooserCallback? onOpenImageFileChooser;
   OnFileChooserGetCoverPath? onFileChooserGetCoverPath;
   ImageCachePathCallback? getCachePath;
@@ -56,13 +41,11 @@ class TWidgets {
     bool Function()? isDarkTheme,
     OpenImageFileChooserCallback? onOpenImageFileChooser,
     OnFileChooserGetCoverPath? onFileChooserGetCoverPath,
-    Duration Function()? getThemeServicesInitDelay,
 
     ///
     /// all `TImageCache` path
     ///
     ImageCachePathCallback? getCachePath,
-    bool initialThemeServices = false,
   }) async {
     isDebugPrint = isDebugPrint;
     this.defaultImageAssetsPath = defaultImageAssetsPath;
@@ -70,8 +53,6 @@ class TWidgets {
     this.isDarkTheme = isDarkTheme;
     this.onOpenImageFileChooser = onOpenImageFileChooser;
     this.onFileChooserGetCoverPath = onFileChooserGetCoverPath;
-    this.getThemeServicesInitDelay =
-        getThemeServicesInitDelay ?? () => Duration(milliseconds: 500);
     this.getCachePath = getCachePath;
 
     await Future.delayed(Duration.zero);

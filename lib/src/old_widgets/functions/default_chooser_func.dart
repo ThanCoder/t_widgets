@@ -1,8 +1,6 @@
 import 'package:file_selector/file_selector.dart';
-import 'package:meta/meta.dart';
 import 'package:t_widgets/t_widgets.dart';
 
-@visibleForTesting
 Future<String?> getDefaultImageChooser({String? initialDirectory}) async {
   try {
     final files = await openFiles(
@@ -11,13 +9,11 @@ Future<String?> getDefaultImageChooser({String? initialDirectory}) async {
         const XTypeGroup(mimeTypes: ['image/*']),
       ],
     );
-    if (files.isNotEmpty) {
-      final path = files.first.path;
-      return path;
-    }
+    if (files.isEmpty) return null;
+    final path = files.first.path;
+    return path;
   } catch (e) {
     TWidgets.showDebugLog(e.toString(), tag: 'getDefaultImageChooser');
     return null;
   }
-  return null;
 }

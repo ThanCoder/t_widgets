@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -72,34 +71,14 @@ class TCacheImage extends StatefulWidget {
 
 class _TCacheImageState extends State<TCacheImage> {
   @override
-  void didUpdateWidget(covariant TCacheImage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // URL အသစ်ဖြစ်မှသာ အရင် download ကို ရပ်ပြီး အသစ်ပြန်စမယ်
-    if (oldWidget.url != widget.url) {
-      _cancelCurrentDownload(); // အရင် download ကို ရပ်တဲ့ logic
-      init();
-    }
-  }
-
-  @override
   void initState() {
     init();
     super.initState();
   }
 
-  StreamSubscription<List<int>>? subscription;
-  HttpClientRequest? request;
-
-  void _cancelCurrentDownload() {
-    request?.abort();
-    subscription?.cancel();
-    request = null;
-    subscription = null;
-  }
-
   @override
   void dispose() {
-    _cancelCurrentDownload();
+    cancelToken.cancel();
 
     super.dispose();
   }
@@ -107,12 +86,10 @@ class _TCacheImageState extends State<TCacheImage> {
   bool isLoading = false;
   String errorMessage = '';
   double progress = 0;
-  final client = HttpClient();
+  final cancelToken = DownloadToken();
 
   void init() async {
     try {
-      _cancelCurrentDownload(); // စတာနဲ့ အရင်ဟာကို ရပ်မယ်
-
       if (!mounted) return;
       setState(() {
         progress = 0;
@@ -151,14 +128,10 @@ class _TCacheImageState extends State<TCacheImage> {
         );
       } else {
         // default
-        await downloadImageDefaultFun(
+        await downloadFileDefaultFun(
           widget.url,
           saveFile().path,
-          client: client,
-          onDownloadStart: (subscription, request) {
-            this.subscription = subscription;
-            this.request = request;
-          },
+          cancelToken: cancelToken,
           onProgress: (progress) {
             if (!mounted) return;
             setState(() {
