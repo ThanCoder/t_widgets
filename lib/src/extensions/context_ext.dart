@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 extension ContextExt on BuildContext {
   /// app brightness
   Brightness get brightness => Theme.brightnessOf(this);
+
   bool get isDarkMode => brightness == .dark;
 
   bool get isLightMode => brightness == .light;
+
+  ColorScheme get colorScheme => Theme.of(this).colorScheme;
 
   /// The current brightness mode of the host platform.
   Brightness get platformBrightness => MediaQuery.of(this).platformBrightness;
@@ -15,4 +18,8 @@ extension ContextExt on BuildContext {
 
   ///The orientation of the media (e.g., whether the device is in landscape or portrait mode)
   Orientation get orientation => MediaQuery.of(this).orientation;
+
+  // void (){
+  //   Theme.of(this).
+  // }
 }
