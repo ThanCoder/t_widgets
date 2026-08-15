@@ -24,25 +24,27 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialThemeProvider(
-      value: .system,
-      onChanged: (value) {
-        print('changed: $value');
-      },
-      child: Scaffold(
-        appBar: AppBar(title: const Text('Plugin example app')),
-        body: Center(
-          child: TImg(
-            props: .new(
-              errorBuilder: (context, error, stackTrace) => Text('Error'),
-            ),
-            controller: .new(.network(url)),
+    return TMaterialThemeProvider(
+      getTheme: () => .system,
+      setTheme: (val) {},
+      child: body(),
+    );
+  }
 
-            // .file(File('/home/thancoder/Pictures/logo.png'))
+  Scaffold body() {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Plugin example app')),
+      body: Center(
+        child: TImg(
+          props: .new(
+            errorBuilder: (context, error, stackTrace) => Text('Error'),
           ),
+          controller: .new(.network(url)),
+
+          // .file(File('/home/thancoder/Pictures/logo.png'))
         ),
-        floatingActionButton: FloatingActionButton(onPressed: () async {}),
       ),
+      floatingActionButton: FloatingActionButton(onPressed: () async {}),
     );
   }
 }
