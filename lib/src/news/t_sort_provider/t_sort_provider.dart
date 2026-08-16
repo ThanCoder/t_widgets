@@ -135,13 +135,12 @@ class _TSortProviderDialogState extends State<TSortProviderDialog> {
     final col = context.colorScheme;
 
     return Container(
-      padding: .symmetric(vertical: 16, horizontal: 14),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
         color: col.surfaceContainer,
-        border: .all(color: col.outlineVariant),
+        border: Border.all(color: col.outlineVariant),
       ),
-      // clipBehavior: Clip.antiAlias,
       child: RadioGroup<TSortItem>(
         groupValue: item,
         onChanged: (value) {
@@ -153,31 +152,19 @@ class _TSortProviderDialogState extends State<TSortProviderDialog> {
         },
         child: Column(
           spacing: 5,
-          children: widget.list.map((e) {
-            final selected = e == item;
-
-            return Container(
-              decoration: !selected
-                  ? null
-                  : BoxDecoration(
-                      borderRadius: .circular(15),
-                      color: col.surfaceContainerHigh,
-                    ),
-              child: RadioListTile<TSortItem>.adaptive(
-                value: e,
-                selected: selected,
-                title: Text(
-                  e.title,
-                  style: TextStyle(
-                    color: selected ? col.onSecondaryContainer : col.onSurface,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                  ),
+          children: widget.list
+              .map(
+                (e) => _radioItem(
+                  e,
+                  e.id == item.id,
+                  onTap: (value) {
+                    setState(() {
+                      item = value;
+                    });
+                  },
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                dense: true,
-              ),
-            );
-          }).toList(),
+              )
+              .toList(),
         ),
       ),
     );
@@ -192,43 +179,97 @@ class _TSortProviderDialogState extends State<TSortProviderDialog> {
         color: col.surfaceContainer,
         border: .all(color: col.outlineVariant),
       ),
-      child: RadioGroup<bool>(
-        groupValue: item.isTrue,
-        onChanged: (value) {
-          if (value == null) return;
+      child: Column(
+        spacing: 4,
+        children: [
+          // true
+          _resultRadio(
+            item.trueTitle,
+            item.isTrue,
+            onTap: (value) {
+              setState(() {
+                item = value.copyWith(isTrue: true);
+              });
+            },
+          ),
+          _resultRadio(
+            item.falseTitle,
+            !item.isTrue,
+            onTap: (value) {
+              setState(() {
+                item = value.copyWith(isTrue: false);
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
 
-          setState(() {
-            item = item.copyWith(isTrue: value);
-          });
-        },
-        child: Column(
+  Container _resultRadio(
+    String title,
+    bool selected, {
+    required void Function(TSortItem value) onTap,
+  }) {
+    final col = context.colorScheme;
+    return Container(
+      padding: .symmetric(vertical: 6, horizontal: 8),
+      decoration: !selected
+          ? null
+          : BoxDecoration(
+              borderRadius: .circular(15),
+              color: col.surfaceContainerHigh,
+            ),
+      child: InkWell(
+        onTap: () => onTap(item),
+        child: Row(
+          spacing: 4,
           children: [
-            Container(
-              decoration: !item.isTrue
-                  ? null
-                  : BoxDecoration(
-                      borderRadius: .circular(15),
-                      color: col.surfaceContainerHigh,
-                    ),
-              child: RadioListTile<bool>.adaptive(
-                value: true,
-                title: Text(item.trueTitle),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                dense: true,
+            // Radio<bool>.adaptive(value: selected, activeColor: col.primary),
+            Icon(
+              selected ? Icons.radio_button_checked : Icons.radio_button_off,
+            ),
+            Text(
+              title,
+              style: TextStyle(
+                color: selected ? col.onSurface : col.onSurfaceVariant,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
-            Container(
-              decoration: item.isTrue
-                  ? null
-                  : BoxDecoration(
-                      borderRadius: .circular(15),
-                      color: col.surfaceContainerHigh,
-                    ),
-              child: RadioListTile<bool>.adaptive(
-                value: false,
-                title: Text(item.falseTitle),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                dense: true,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _radioItem(
+    TSortItem item,
+    bool selected, {
+    required void Function(TSortItem value) onTap,
+  }) {
+    final col = context.colorScheme;
+
+    return Container(
+      padding: .symmetric(vertical: 6, horizontal: 8),
+      decoration: !selected
+          ? null
+          : BoxDecoration(
+              borderRadius: .circular(15),
+              color: col.surfaceContainerHigh,
+            ),
+      child: InkWell(
+        onTap: () => onTap(item),
+        child: Row(
+          spacing: 4,
+          children: [
+            Icon(
+              selected ? Icons.radio_button_checked : Icons.radio_button_off,
+            ),
+            Text(
+              item.title,
+              style: TextStyle(
+                color: selected ? col.onSurface : col.onSurfaceVariant,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
           ],
