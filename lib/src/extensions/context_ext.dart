@@ -9,6 +9,7 @@ extension ContextExt on BuildContext {
   bool get isLightMode => brightness == .light;
 
   ColorScheme get colorScheme => Theme.of(this).colorScheme;
+  TextTheme get textTheme => Theme.of(this).textTheme;
 
   /// The current brightness mode of the host platform.
   Brightness get platformBrightness => MediaQuery.of(this).platformBrightness;

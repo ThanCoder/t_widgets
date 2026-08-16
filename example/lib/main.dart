@@ -26,7 +26,9 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return TMaterialThemeProvider(
       getTheme: () => .system,
-      setTheme: (val) {},
+      onChanged: (type) {
+        print('changed : $type');
+      },
       child: body(),
     );
   }
@@ -35,13 +37,15 @@ class _MyAppState extends State<MyApp> {
     return Scaffold(
       appBar: AppBar(title: const Text('Plugin example app')),
       body: Center(
-        child: TImg(
-          props: .new(
-            errorBuilder: (context, error, stackTrace) => Text('Error'),
-          ),
-          controller: .new(.network(url)),
-
-          // .file(File('/home/thancoder/Pictures/logo.png'))
+        child: Column(
+          mainAxisAlignment: .center,
+          children: [
+            TMaterialThemeProviderChooser(),
+            TSortProviderButton(
+              value: .dateTSortItem,
+              list: [.nameTSortItem, .dateTSortItem],
+            ),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton(onPressed: () async {}),

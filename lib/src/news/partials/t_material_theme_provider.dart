@@ -20,19 +20,22 @@ enum TMaterialThemeProviderType {
 }
 
 class TMaterialThemeProvider extends StatefulWidget {
-  final Widget child;
-  final TMaterialThemeProviderType Function() getTheme;
-  final void Function(TMaterialThemeProviderType type) setTheme;
-  final ThemeData? theme;
-  final ThemeData? darkTheme;
+  /// use -> TMaterialThemeProviderChooser
+  ///
   const TMaterialThemeProvider({
     super.key,
     required this.getTheme,
-    required this.setTheme,
+    required this.onChanged,
     required this.child,
     this.theme,
     this.darkTheme,
   });
+
+  final Widget child;
+  final TMaterialThemeProviderType Function() getTheme;
+  final void Function(TMaterialThemeProviderType type) onChanged;
+  final ThemeData? theme;
+  final ThemeData? darkTheme;
 
   @override
   State<TMaterialThemeProvider> createState() => _TMaterialThemeProviderState();
@@ -48,6 +51,9 @@ class _TMaterialThemeProviderState extends State<TMaterialThemeProvider>
   void initState() {
     WidgetsBinding.instance.addObserver(this);
     TMaterialThemeProvider.themeTypeNotifier.value = widget.getTheme();
+    TMaterialThemeProvider.themeTypeNotifier.addListener(() {
+      widget.onChanged(TMaterialThemeProvider.themeTypeNotifier.value);
+    });
     super.initState();
   }
 
@@ -91,17 +97,24 @@ class _TMaterialThemeProviderState extends State<TMaterialThemeProvider>
   }
 }
 
-class MaterialThemeProviderChooser extends StatelessWidget {
-  final void Function(TMaterialThemeProviderType type) onChanged;
-  MaterialThemeProviderChooser({super.key, required this.onChanged});
+class TMaterialThemeProviderChooser extends StatefulWidget {
+  const TMaterialThemeProviderChooser({super.key, this.onChanged});
+  final void Function(TMaterialThemeProviderType type)? onChanged;
 
+  @override
+  State<TMaterialThemeProviderChooser> createState() =>
+      _TMaterialThemeProviderChooserState();
+}
+
+class _TMaterialThemeProviderChooserState
+    extends State<TMaterialThemeProviderChooser> {
   final items = TMaterialThemeProviderType.values
       .map((e) => DropdownMenuItem(value: e, child: Text(e.lable)))
       .toList();
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final col = Theme.of(context).colorScheme;
 
     return Container(
       decoration: BoxDecoration(
@@ -114,10 +127,17 @@ class MaterialThemeProviderChooser extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         child: Row(
           children: [
-            Icon(
-              Icons.palette_outlined,
-              size: 22,
-              color: theme.colorScheme.primary,
+            Container(
+              padding: .all(8),
+              decoration: BoxDecoration(
+                borderRadius: .circular(15),
+                color: col.tertiaryContainer,
+              ),
+              child: Icon(
+                Icons.palette_outlined,
+                size: 22,
+                color: col.onTertiaryContainer,
+              ),
             ),
 
             const SizedBox(width: 12),
@@ -142,16 +162,16 @@ class MaterialThemeProviderChooser extends StatelessWidget {
                     ),
                     borderRadius: BorderRadius.circular(12),
                     icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                    dropdownColor: theme.colorScheme.surfaceContainerHighest,
+                    dropdownColor: col.surfaceContainerHighest,
                     style: TextStyle(
-                      color: theme.colorScheme.onSurface,
+                      color: col.onSurface,
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
                     onChanged: (value) {
                       if (value != null) {
                         TMaterialThemeProvider.themeTypeNotifier.value = value;
-                        onChanged(value);
+                        widget.onChanged?.call(value);
                       }
                     },
                   ),

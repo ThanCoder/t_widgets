@@ -7,5 +7,13 @@ analyzer:
     invalid_export_of_internal_element: error
     invalid_internal_annotation: ignore
     invalid_use_of_visible_for_testing_member: ignore
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options
