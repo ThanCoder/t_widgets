@@ -1,9 +1,8 @@
 import 'dart:async';
 
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:t_widgets/src/old_widgets/downloader/t_manager.dart';
 import 'package:t_widgets/src/old_widgets/widgets/t_scrollable_column.dart';
-
 
 class TProgressDialog extends StatefulWidget {
   final TProgressManager manager;

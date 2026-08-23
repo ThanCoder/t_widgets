@@ -1,5 +1,5 @@
 import 'package:flutter/gestures.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 class TScaffold extends StatelessWidget {
   PreferredSizeWidget? appBar;
@@ -91,8 +91,8 @@ class TScaffold extends StatelessWidget {
     // custom top
     if (customBoxConstraints != null) {
       return Center(
-          child:
-              ConstrainedBox(constraints: customBoxConstraints!, child: body));
+        child: ConstrainedBox(constraints: customBoxConstraints!, child: body),
+      );
     }
     // all config
 

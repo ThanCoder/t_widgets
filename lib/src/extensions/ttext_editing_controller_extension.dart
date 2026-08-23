@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 extension TTextEditingControllerExtension on TextEditingController {
   /// Select all Text

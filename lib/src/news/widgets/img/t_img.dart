@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:t_widgets/src/news/widgets/img/img_pros.dart';
 import 'package:t_widgets/src/news/widgets/img/t_img_controller.dart';
 
@@ -24,8 +24,6 @@ class TImg extends StatelessWidget {
     );
   }
 }
-
-
 
 /*
 alignment: props.alignment,

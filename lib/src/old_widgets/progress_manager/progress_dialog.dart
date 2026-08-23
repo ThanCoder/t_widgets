@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:t_widgets/src/old_widgets/progress_manager/progress_manager_interface.dart';
 import 'package:t_widgets/src/old_widgets/progress_manager/progress_message.dart';
 

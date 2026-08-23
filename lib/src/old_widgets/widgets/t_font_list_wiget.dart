@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 class TFontListWiget extends StatelessWidget {
   int fontSize;
@@ -43,15 +43,11 @@ class TFontListWiget extends StatelessWidget {
     );
   }
 
-  List<DropdownMenuItem<int>> getFontList() =>
-      List.generate(
-        generateFontLength,
-        (index) => DropdownMenuItem<int>(
-          value: index,
-          child: Text(
-            '$index',
-            style: fontTextStyle ?? TextStyle(fontSize: 19),
-          ),
-        ),
-      ).where((i) => i.value! >= generateStartFont).toList();
+  List<DropdownMenuItem<int>> getFontList() => List.generate(
+    generateFontLength,
+    (index) => DropdownMenuItem<int>(
+      value: index,
+      child: Text('$index', style: fontTextStyle ?? TextStyle(fontSize: 19)),
+    ),
+  ).where((i) => i.value! >= generateStartFont).toList();
 }

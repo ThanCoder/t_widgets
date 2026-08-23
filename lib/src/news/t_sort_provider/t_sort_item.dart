@@ -16,6 +16,8 @@ class TSortItem {
   });
 
   ///default name
+  ///
+  ///trueTitle: "A To Z",
   static final nameTSortItem = TSortItem(
     id: 1000,
     title: 'Name',
@@ -25,6 +27,8 @@ class TSortItem {
   );
 
   /// default data
+  ///
+  /// trueTitle: "New To Old",
   static final dateTSortItem = TSortItem(
     id: 1001,
     title: 'Date',
@@ -32,6 +36,8 @@ class TSortItem {
     falseTitle: 'Old To New',
     isTrue: true,
   );
+
+  ///  trueTitle: "Small To Big",
   static final sizeTSortItem = TSortItem(
     id: 1,
     title: 'Size',

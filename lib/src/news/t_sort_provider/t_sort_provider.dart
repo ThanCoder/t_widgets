@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 import 'package:t_widgets/t_widgets.dart';
 
@@ -11,12 +11,10 @@ class TSortProviderButton extends StatelessWidget {
     required this.list,
     this.onApply,
     this.title,
-    this.boxConstraints,
   });
 
   final List<TSortItem> list;
   final TSortItem value;
-  final BoxConstraints? boxConstraints;
   final void Function(TSortItem item)? onApply;
   final String? title;
 
@@ -32,12 +30,8 @@ class TSortProviderButton extends StatelessWidget {
         final res = await showModalBottomSheet<TSortItem>(
           context: context,
           showDragHandle: true,
-          builder: (context) => TSortProviderDialog(
-            list: list,
-            value: value,
-            title: title,
-            boxConstraints: boxConstraints,
-          ),
+          builder: (context) =>
+              TSortProviderDialog(list: list, value: value, title: title),
         );
         if (res == null) return;
         onApply?.call(res);
@@ -52,13 +46,11 @@ class TSortProviderDialog extends StatefulWidget {
     super.key,
     required this.list,
     required this.value,
-    this.boxConstraints,
     this.title,
   });
   final List<TSortItem> list;
   final TSortItem value;
   final String? title;
-  final BoxConstraints? boxConstraints;
   @override
   State<TSortProviderDialog> createState() => _TSortProviderDialogState();
 }
@@ -82,29 +74,25 @@ class _TSortProviderDialogState extends State<TSortProviderDialog> {
         if (didPop) return;
         Navigator.pop<TSortItem>(context, item);
       },
-      child: ConstrainedBox(
-        constraints:
-            widget.boxConstraints ?? const BoxConstraints(minHeight: 500),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Column(
-            spacing: 4,
-            children: [
-              // Header
-              _header(col, textTheme),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          spacing: 4,
+          children: [
+            // Header
+            _header(col, textTheme),
 
-              // Sort group
-              sortGropWidget,
+            // Sort group
+            sortGropWidget,
 
-              SizedBox(height: 1),
+            SizedBox(height: 1),
 
-              // Sort result
-              sortResultWidgt,
+            // Sort result
+            sortResultWidgt,
 
-              // Apply
-              // applyWidget,
-            ],
-          ),
+            // Apply
+            // applyWidget,
+          ],
         ),
       ),
     );
@@ -140,7 +128,6 @@ class _TSortProviderDialogState extends State<TSortProviderDialog> {
 
   Widget get sortGropWidget {
     final col = context.colorScheme;
-
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 14),
       decoration: BoxDecoration(
@@ -148,30 +135,31 @@ class _TSortProviderDialogState extends State<TSortProviderDialog> {
         color: col.surfaceContainer,
         border: Border.all(color: col.outlineVariant),
       ),
-      child: RadioGroup<TSortItem>(
-        groupValue: item,
-        onChanged: (value) {
-          if (value == null) return;
+      child: Material(
+        color: col.surfaceContainer,
 
-          setState(() {
-            item = value;
-          });
-        },
-        child: Column(
-          spacing: 5,
-          children: widget.list
-              .map(
-                (e) => _radioItem(
-                  e,
-                  e.id == item.id,
-                  onTap: (value) {
-                    setState(() {
-                      item = value;
-                    });
-                  },
-                ),
-              )
-              .toList(),
+        child: RadioGroup<TSortItem>(
+          groupValue: item,
+          onChanged: (value) {
+            setState(() {
+              item = value!;
+            });
+          },
+          child: Column(
+            spacing: 4,
+            children: widget.list
+                .map(
+                  (e) => RadioListTile.adaptive(
+                    tileColor: e.id != item.id
+                        ? null
+                        : col.surfaceContainerHighest,
+                    shape: RoundedRectangleBorder(borderRadius: .circular(10)),
+                    value: e,
+                    title: Text(e.title),
+                  ),
+                )
+                .toList(),
+          ),
         ),
       ),
     );
@@ -186,100 +174,31 @@ class _TSortProviderDialogState extends State<TSortProviderDialog> {
         color: col.surfaceContainer,
         border: .all(color: col.outlineVariant),
       ),
-      child: Column(
-        spacing: 4,
-        children: [
-          // true
-          _resultRadio(
-            item.trueTitle,
-            item.isTrue,
-            onTap: (value) {
-              setState(() {
-                item = value.copyWith(isTrue: true);
-              });
-            },
-          ),
-          _resultRadio(
-            item.falseTitle,
-            !item.isTrue,
-            onTap: (value) {
-              setState(() {
-                item = value.copyWith(isTrue: false);
-              });
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Container _resultRadio(
-    String title,
-    bool selected, {
-    required void Function(TSortItem value) onTap,
-  }) {
-    final col = context.colorScheme;
-    return Container(
-      padding: .symmetric(vertical: 6, horizontal: 8),
-      decoration: !selected
-          ? null
-          : BoxDecoration(
-              borderRadius: .circular(15),
-              color: col.surfaceContainerHigh,
-            ),
-      child: InkWell(
-        onTap: () => onTap(item),
-        child: Row(
-          spacing: 4,
-          children: [
-            // Radio<bool>.adaptive(value: selected, activeColor: col.primary),
-            Icon(
-              selected ? Icons.radio_button_checked : Icons.radio_button_off,
-            ),
-            Text(
-              title,
-              style: TextStyle(
-                color: selected ? col.onSurface : col.onSurfaceVariant,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+      child: Material(
+        color: col.surfaceContainer,
+        child: RadioGroup<bool>(
+          groupValue: item.isTrue,
+          onChanged: (value) {
+            item = item.copyWith(isTrue: value);
+            setState(() {});
+          },
+          child: Column(
+            spacing: 4,
+            children: [
+              RadioListTile.adaptive(
+                tileColor: !item.isTrue ? null : col.surfaceContainerHighest,
+                shape: RoundedRectangleBorder(borderRadius: .circular(10)),
+                value: true,
+                title: Text(item.trueTitle),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _radioItem(
-    TSortItem item,
-    bool selected, {
-    required void Function(TSortItem value) onTap,
-  }) {
-    final col = context.colorScheme;
-
-    return Container(
-      padding: .symmetric(vertical: 6, horizontal: 8),
-      decoration: !selected
-          ? null
-          : BoxDecoration(
-              borderRadius: .circular(15),
-              color: col.surfaceContainerHigh,
-            ),
-      child: InkWell(
-        onTap: () => onTap(item),
-        child: Row(
-          spacing: 4,
-          children: [
-            Icon(
-              selected ? Icons.radio_button_checked : Icons.radio_button_off,
-            ),
-            Text(
-              item.title,
-              style: TextStyle(
-                color: selected ? col.onSurface : col.onSurfaceVariant,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+              RadioListTile.adaptive(
+                tileColor: item.isTrue ? null : col.surfaceContainerHighest,
+                shape: RoundedRectangleBorder(borderRadius: .circular(10)),
+                value: false,
+                title: Text(item.falseTitle),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

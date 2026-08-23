@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 typedef OnSeeAllClickedCallback<T> = void Function(String title, List<T> list);
 typedef GridItemBuilderCallback<T> =

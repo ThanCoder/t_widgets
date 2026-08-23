@@ -2,7 +2,7 @@
 
 import 'dart:io';
 
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:t_widgets/t_widgets.dart';
 
 final appDarkThemeNotifier = ValueNotifier<bool>(false);
@@ -43,7 +43,10 @@ class _MyAppState extends State<MyApp> {
             TMaterialThemeProviderChooser(),
             TSortProviderButton(
               value: .dateTSortItem,
-              list: [.nameTSortItem, .dateTSortItem],
+              list: [.nameTSortItem, .dateTSortItem, .sizeTSortItem],
+              onApply: (item) {
+                print('apply: $item');
+              },
             ),
           ],
         ),

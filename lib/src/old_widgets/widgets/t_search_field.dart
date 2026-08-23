@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 class TSearchField extends StatefulWidget {
   void Function(String text)? onChanged;
@@ -59,21 +59,20 @@ class _TSearchFieldState extends State<TSearchField> {
         borderRadius: BorderRadius.circular(12.0),
         borderSide: BorderSide.none,
       ),
-      suffixIcon:
-          showClearBtn
-              ? IconButton(
-                onPressed: () {
-                  controller.text = '';
-                  showClearBtn = false;
-                  focus.unfocus();
-                  setState(() {});
-                  if (widget.onCleared != null) {
-                    widget.onCleared!();
-                  }
-                },
-                icon: const Icon(Icons.clear_all_rounded),
-              )
-              : null,
+      suffixIcon: showClearBtn
+          ? IconButton(
+              onPressed: () {
+                controller.text = '';
+                showClearBtn = false;
+                focus.unfocus();
+                setState(() {});
+                if (widget.onCleared != null) {
+                  widget.onCleared!();
+                }
+              },
+              icon: const Icon(Icons.clear_all_rounded),
+            )
+          : null,
     );
   }
 

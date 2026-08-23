@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:t_widgets/t_widgets.dart';
 
 enum TMaterialThemeProviderType {
@@ -118,9 +118,7 @@ class _TMaterialThemeProviderChooserState
 
     return Container(
       decoration: BoxDecoration(
-        color: context.colorScheme.surfaceContainerHighest.withValues(
-          alpha: .45,
-        ),
+        color: context.colorScheme.surfaceContainer,
         borderRadius: .circular(15),
       ),
       child: Padding(
@@ -131,12 +129,12 @@ class _TMaterialThemeProviderChooserState
               padding: .all(8),
               decoration: BoxDecoration(
                 borderRadius: .circular(15),
-                color: col.tertiaryContainer,
+                color: col.surfaceContainerHigh,
               ),
               child: Icon(
                 Icons.palette_outlined,
                 size: 22,
-                color: col.onTertiaryContainer,
+                color: col.onSurface,
               ),
             ),
 

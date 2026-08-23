@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 't_text_field.dart';
@@ -21,7 +21,7 @@ class TNumberField extends StatelessWidget {
     this.maxLines = 1,
     this.onChanged,
     this.onSubmitted,
-    this.autofocus=false,
+    this.autofocus = false,
     this.enabled,
     this.hintText,
   });
@@ -33,13 +33,13 @@ class TNumberField extends StatelessWidget {
       focusNode: focusNode,
       maxLines: maxLines,
       autofocus: autofocus,
-      enabled:enabled ,
+      enabled: enabled,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       textInputType: TextInputType.number,
       onChanged: onChanged,
       onSubmitted: onSubmitted,
       label: label,
-      hintText:hintText,
+      hintText: hintText,
     );
   }
 }

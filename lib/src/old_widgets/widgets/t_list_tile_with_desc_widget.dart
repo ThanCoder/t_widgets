@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 
 class TListTileWithDescWidget extends StatelessWidget {
   Widget widget1;
@@ -39,12 +39,12 @@ class TListTileWithDescWidget extends StatelessWidget {
                 desc != null ? const SizedBox(height: 5) : SizedBox.shrink(),
                 desc != null
                     ? Text(
-                      desc ?? '',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    )
+                        desc ?? '',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      )
                     : SizedBox.shrink(),
               ],
             ),

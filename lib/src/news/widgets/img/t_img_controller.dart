@@ -1,4 +1,4 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/material.dart';
 import 'package:t_widgets/src/news/widgets/img/t_img_source.dart';
 
 class TImgController extends ChangeNotifier {
@@ -9,7 +9,7 @@ class TImgController extends ChangeNotifier {
 
   void setSource(TImgSource source) {
     if (_source == source) return;
-    
+
     _source = source;
     notifyListeners();
   }
