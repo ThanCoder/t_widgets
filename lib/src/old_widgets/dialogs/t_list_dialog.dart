@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 typedef ItemListBuilderCallback<T> =
     Widget Function(BuildContext context, T item);

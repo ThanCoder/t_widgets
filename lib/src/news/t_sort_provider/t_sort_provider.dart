@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:t_widgets/t_widgets.dart';
 
@@ -25,12 +25,13 @@ class TSortProviderButton extends StatelessWidget {
     final col = context.colorScheme;
     return IconButton(
       style: IconButton.styleFrom(
-        backgroundColor: col.tertiaryContainer,
-        foregroundColor: col.onTertiaryContainer,
+        backgroundColor: col.surfaceContainerHighest,
+        foregroundColor: col.onSurface,
       ),
       onPressed: () async {
         final res = await showModalBottomSheet<TSortItem>(
           context: context,
+          showDragHandle: true,
           builder: (context) => TSortProviderDialog(
             list: list,
             value: value,
@@ -75,29 +76,35 @@ class _TSortProviderDialogState extends State<TSortProviderDialog> {
   Widget build(BuildContext context) {
     final col = context.colorScheme;
     final textTheme = context.textTheme;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        Navigator.pop<TSortItem>(context, item);
+      },
+      child: ConstrainedBox(
+        constraints:
+            widget.boxConstraints ?? const BoxConstraints(minHeight: 500),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Column(
+            spacing: 4,
+            children: [
+              // Header
+              _header(col, textTheme),
 
-    return ConstrainedBox(
-      constraints:
-          widget.boxConstraints ?? const BoxConstraints(minHeight: 500),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
-          spacing: 4,
-          children: [
-            // Header
-            _header(col, textTheme),
+              // Sort group
+              sortGropWidget,
 
-            // Sort group
-            sortGropWidget,
+              SizedBox(height: 1),
 
-            SizedBox(height: 1),
+              // Sort result
+              sortResultWidgt,
 
-            // Sort result
-            sortResultWidgt,
-
-            // Apply
-            // applyWidget,
-          ],
+              // Apply
+              // applyWidget,
+            ],
+          ),
         ),
       ),
     );
